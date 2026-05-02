@@ -6,7 +6,7 @@
 
 ## PR002: DataMatrix scanner and GS1 AI parser
 
-Добавить экран камеры, чтение GS1 DataMatrix и локальный парсер Application Identifiers. Сохранять полный raw DataMatrix и извлеченные GTIN, serial, batch, productionDate, expiryDate, если они есть в коде.
+Добавлен экран камеры, чтение GS1 DataMatrix через ZXing и локальный парсер Application Identifiers. Сохраняется полный raw DataMatrix и извлеченные GTIN, serial, batch, productionDate, expiryDate, если они есть в коде.
 
 ## PR003: Product card and open storage rules
 
