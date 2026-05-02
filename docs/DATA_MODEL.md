@@ -11,7 +11,7 @@ interface Product {
   category: string;
   photoDataUrl?: string;
   rawCode?: string;
-  parsedCode?: string;
+  parsedCode?: ParsedGs1Code;
   gtin?: string;
   serial?: string;
   batch?: string;
@@ -29,7 +29,9 @@ interface Product {
 
 ## Поля DataMatrix
 
-В PR001 реальные сканирование и парсинг не реализованы. Поля `rawCode`, `parsedCode`, `gtin`, `serial`, `batch`, `productionDate` и `expiryDate` уже есть в модели, чтобы PR002 мог сохранить полный raw DataMatrix и локально извлеченные значения.
+В PR002 экран сканирования сохраняет полный `rawCode` и объект результата парсинга `parsedCode`. Известные поля также копируются в верхний уровень продукта: `gtin`, `serial`, `batch`, `productionDate`, `expiryDate`.
+
+`expiryDate` заполняется в порядке приоритета: `expiryDateTime`, `expiryDate`, `bestBeforeDate`. Значение AI `7003` хранится как локальная дата-время без timezone в формате `YYYY-MM-DDTHH:mm`.
 
 ## Расчет срока
 

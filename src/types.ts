@@ -1,3 +1,5 @@
+import type { ParsedGs1Code } from './gs1Parser';
+
 export type ProductStatus = 'sealed' | 'opened' | 'consumed' | 'discarded' | 'expired';
 
 export type ShelfLifeGroup = 'urgent' | 'soon' | 'normal' | 'noDate';
@@ -8,7 +10,7 @@ export interface Product {
   category: string;
   photoDataUrl?: string;
   rawCode?: string;
-  parsedCode?: string;
+  parsedCode?: ParsedGs1Code;
   gtin?: string;
   serial?: string;
   batch?: string;
