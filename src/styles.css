@@ -398,6 +398,14 @@ textarea {
   color: #ffb5ad;
 }
 
+.scanner-note {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #203029;
+  color: #d8f7c4;
+}
+
 .raw-code {
   min-height: 74px;
   overflow: auto;

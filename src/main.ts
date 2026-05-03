@@ -147,8 +147,13 @@ function renderParsedGs1(parsed?: ParsedGs1Code): string {
   }
 
   const expiry = parsed.expiryDateTime ?? parsed.expiryDate ?? parsed.bestBeforeDate;
+  const missingExpiryMessage =
+    (parsed.gtin || parsed.serial) && !expiry
+      ? '<p class="scanner-note">Срок годности не найден в коде. Его можно указать вручную при редактировании продукта.</p>'
+      : '';
 
   return `
+    ${missingExpiryMessage}
     <dl class="details-list scanner-details">
       <dt>GTIN</dt><dd>${escapeHtml(parsed.gtin ?? 'Не найден')}</dd>
       <dt>Серийный номер</dt><dd>${escapeHtml(parsed.serial ?? 'Не найден')}</dd>
@@ -156,6 +161,11 @@ function renderParsedGs1(parsed?: ParsedGs1Code): string {
       <dt>Дата производства</dt><dd>${escapeHtml(parsed.productionDate ?? 'Не найдена')}</dd>
       <dt>Срок годности</dt><dd>${escapeHtml(expiry ?? 'Не найден')}</dd>
       <dt>Confidence</dt><dd>${parsed.confidence}</dd>
+      <dt>Служебные поля маркировки</dt><dd>${
+        parsed.serviceAis.length
+          ? parsed.serviceAis.map((item) => `${escapeHtml(item.ai)}=${escapeHtml(item.value)}`).join('<br />')
+          : 'Нет'
+      }</dd>
       <dt>Неизвестные AI</dt><dd>${
         parsed.unknownAis.length
           ? parsed.unknownAis.map((item) => `${escapeHtml(item.ai)}=${escapeHtml(item.value)}`).join('<br />')

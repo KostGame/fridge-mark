@@ -8,6 +8,11 @@ export interface UnknownGs1Ai {
   value: string;
 }
 
+export interface ServiceGs1Ai {
+  ai: '91' | '92' | '93';
+  value: string;
+}
+
 export interface ParsedGs1Code {
   raw: string;
   normalized: string;
@@ -20,13 +25,15 @@ export interface ParsedGs1Code {
   expiryDate?: string;
   expiryDateTime?: string;
   unknownAis: UnknownGs1Ai[];
+  serviceAis: ServiceGs1Ai[];
   errors: string[];
   confidence: Gs1Confidence;
 }
 
-type KnownAi = '01' | '10' | '11' | '15' | '17' | '21' | '7003';
+type ServiceAi = ServiceGs1Ai['ai'];
+type KnownAi = '01' | '10' | '11' | '15' | '17' | '21' | '7003' | ServiceAi;
 
-const FIXED_AI_LENGTHS: Record<Exclude<KnownAi, '10' | '21'>, number> = {
+const FIXED_AI_LENGTHS: Record<Exclude<KnownAi, '10' | '21' | ServiceAi>, number> = {
   '01': 14,
   '11': 6,
   '15': 6,
@@ -39,10 +46,14 @@ const VARIABLE_AI_MAX_LENGTHS: Record<Extract<KnownAi, '10' | '21'>, number> = {
   '21': 20,
 };
 
-const KNOWN_AIS: KnownAi[] = ['7003', '01', '11', '15', '17', '10', '21'];
+const KNOWN_AIS: KnownAi[] = ['7003', '01', '11', '15', '17', '10', '21', '91', '92', '93'];
 
 export function normalizeGs1Raw(raw: string): string {
-  return raw.trim().replace(/\\u001d/gi, GROUP_SEPARATOR);
+  return raw
+    .trim()
+    .replace(/&lt;GS&gt;/gi, GROUP_SEPARATOR)
+    .replace(/<GS>/gi, GROUP_SEPARATOR)
+    .replace(/\\u001d/gi, GROUP_SEPARATOR);
 }
 
 export function parseGs1DateYYMMDD(value: string): string | null {
@@ -89,6 +100,7 @@ export function parseGs1Code(raw: string): ParsedGs1Code {
     raw,
     normalized: normalizedRaw,
     unknownAis: [],
+    serviceAis: [],
     errors: [],
     confidence: 'low',
   };
@@ -142,7 +154,7 @@ function parsePlainBody(body: string, result: ParsedGs1Code): void {
     const ai = findKnownAi(body, index);
     if (ai) {
       const valueStart = index + ai.length;
-      const valueEnd = isVariableAi(ai) ? findVariableEnd(body, valueStart, VARIABLE_AI_MAX_LENGTHS[ai]) : valueStart + FIXED_AI_LENGTHS[ai];
+      const valueEnd = getKnownValueEnd(body, ai, valueStart);
       const value = body.slice(valueStart, valueEnd);
       applyAi(ai, value, result);
       index = body[valueEnd] === GROUP_SEPARATOR ? valueEnd + 1 : valueEnd;
@@ -172,6 +184,23 @@ function findKnownAi(body: string, index: number): KnownAi | undefined {
 
 function isVariableAi(ai: KnownAi): ai is '10' | '21' {
   return ai === '10' || ai === '21';
+}
+
+function isServiceAi(ai: KnownAi): ai is ServiceAi {
+  return ai === '91' || ai === '92' || ai === '93';
+}
+
+function getKnownValueEnd(body: string, ai: KnownAi, valueStart: number): number {
+  if (isVariableAi(ai)) {
+    return findVariableEnd(body, valueStart, VARIABLE_AI_MAX_LENGTHS[ai]);
+  }
+
+  if (isServiceAi(ai)) {
+    const separatorIndex = body.indexOf(GROUP_SEPARATOR, valueStart);
+    return separatorIndex >= valueStart ? separatorIndex : body.length;
+  }
+
+  return valueStart + FIXED_AI_LENGTHS[ai];
 }
 
 function findVariableEnd(body: string, start: number, maxLength: number): number {
@@ -214,6 +243,11 @@ function applyAi(ai: string, value: string, result: ParsedGs1Code): void {
     case '21':
       result.serial = value.slice(0, VARIABLE_AI_MAX_LENGTHS['21']);
       break;
+    case '91':
+    case '92':
+    case '93':
+      result.serviceAis.push({ ai, value });
+      break;
     case '7003': {
       const dateTime = parseGs1DateTimeYYMMDDhhmm(value);
       if (dateTime) {
@@ -243,12 +277,14 @@ function applyDateAi(
 }
 
 function getConfidence(result: ParsedGs1Code): Gs1Confidence {
-  const hasCoreIdentity = Boolean(result.gtin && (result.serial || result.batch || result.expiryDate || result.expiryDateTime));
-  if (hasCoreIdentity && result.errors.length === 0) {
+  const hasExpiry = Boolean(result.expiryDate || result.expiryDateTime || result.bestBeforeDate);
+  const hasTraceability = Boolean(result.serial || result.batch);
+
+  if (result.gtin && hasExpiry && result.errors.length === 0) {
     return 'high';
   }
 
-  if (result.gtin || result.expiryDate || result.expiryDateTime || result.bestBeforeDate) {
+  if (result.gtin || hasExpiry || hasTraceability) {
     return 'medium';
   }
 
