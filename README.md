@@ -29,11 +29,21 @@ npm test
 
 ## Публикация на GitHub Pages
 
-1. Выполнить `npm run build`.
-2. Опубликовать содержимое `dist/` через GitHub Pages.
-3. Для публикации из ветки можно использовать GitHub Actions или вручную настроить Pages на статический артефакт.
+Приложение публикуется через GitHub Actions workflow `.github/workflows/deploy-pages.yml` после push в `main`. Workflow устанавливает зависимости через `npm ci`, запускает `npm test`, выполняет `npm run build` и публикует каталог `dist/` через GitHub Pages.
 
-Конфиг Vite использует `base: './'`, поэтому сборка пригодна для размещения в подпапке репозитория.
+Ожидаемый URL после деплоя:
+
+```text
+https://kostgame.github.io/fridge-mark/
+```
+
+В настройках репозитория нужно включить публикацию из GitHub Actions:
+
+```text
+Settings → Pages → Source: GitHub Actions
+```
+
+Конфиг Vite использует `base: './'`, поэтому сборка пригодна для размещения в подпапке GitHub Pages. Данные IndexedDB из локального dev-сервера не переносятся автоматически на GitHub Pages: это разные browser origins, и пользовательские данные остаются локальными для каждого адреса.
 
 ## Пока не реализовано
 
